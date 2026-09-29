@@ -408,7 +408,7 @@ Same event, different jobs:
 
 **Phase 6 result:** merging to `main` now tests *and* publishes the site automatically. That's CD.
 
-### Phase 7: The full loop (in progress)
+### Phase 7: The full loop ✓
 Plan: make a visible change on a branch and watch it travel PR → CI → merge → deploy → live, with no manual deploy step.
 
 Note: the first "live" reply came before Phase 7 had started (still on `main`, title unchanged). Checked with `git status`, `gh pr list`, and the live page before continuing.
@@ -419,3 +419,59 @@ Note: the first "live" reply came before Phase 7 had started (still on `main`, t
 | Edited `index.html` line 9: `<h1>Tip Calculator</h1>` → `<h1>Tip Calc</h1>` | The visible change |
 | `git diff index.html` | Showed exactly one changed line: `-` = old, `+` = new |
 | `npm test` | 3 pass, 0 fail (the math is untouched) |
+| `git add .` + `git commit -m "feat(app): update page title"` | Commit `7025d29` |
+| `git push -u origin update-title` + `gh pr create --fill` | Opened PR #4 → CI ran |
+| `gh pr checks --watch` | Run `36552396299`: `test` ✓, `deploy` skipped |
+| `gh pr merge --merge --delete-branch` | Merged PR #4 (merge commit `de3913d`) |
+| `gh run watch` | Run `36552441989`: `test` ✓ → `deploy` ✓ |
+| Opened the site + `Ctrl+F5` | Live page shows **Tip Calc** |
+
+Timeline (UTC):
+| Time | Event |
+|---|---|
+| 09:56:23 | PR #4 opened |
+| 09:56:37 | PR checks done (`test` ✓, 11 s) |
+| 09:56:51 | Merged |
+| 09:57:06 | Deployed to `github-pages` (commit `de3913d`) |
+| 09:57:23 | Pipeline run finished |
+
+About **1 minute from opening the PR to the change being live**, with no manual deploy step.
+
+**Phase 7 result:** the full loop works end to end.
+
+---
+
+## Project complete: what the pipeline does now
+
+```
+edit on a branch → push → open PR
+                            │
+                            ▼
+                     test (npm test)  ── ✗ → merge blocked (ruleset)
+                            │ ✓
+                            ▼
+                     merge into main
+                            │
+                            ▼
+                     test (npm test)  ── ✗ → deploy never runs
+                            │ ✓   (needs: test)
+                            ▼
+                     deploy (only on main)
+                            │
+                            ▼
+              https://fsideris.github.io/cicd-lab/
+```
+
+Repo: https://github.com/fsideris/cicd-lab · PRs merged: 4 · Pipeline runs: 8 (1 red, on purpose)
+
+### Open items
+- [ ] Stale local references `origin/add-deploy` and `origin/update-title` (GitHub has only `main`). `gh pr merge` updates `main` before deleting the branch, so the prune misses it. The next `git fetch` removes them.
+- [ ] These final notes are uncommitted. `main` is protected, so they go in through a PR.
+- [ ] Unknown: whether `fotis019@gmail.com` is added to the `fsideris` GitHub account (commit avatar only).
+
+### Ideas for later (from `STEPS.md`)
+- Lint step
+- Matrix builds (several Node versions)
+- Dependency caching
+- Secrets
+- Manual approval before deploy
