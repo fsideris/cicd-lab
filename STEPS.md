@@ -57,8 +57,8 @@ Already done: git identity is `fsider` / `fotis019@gmail.com`.
 *Concepts:* workflow, trigger (`on:`), job, runner, step, action (`uses:`).
 
 ### Phase 4: Watch CI catch a bug (10 min)
-- [ ] New branch `break-it`, make the math wrong, push, open a pull request
-- [ ] See the red ✗ on the pull request
+- [x] New branch `break-it`, make the math wrong, push, open a pull request
+- [x] See the red ✗ on the pull request
 - [ ] Fix it, push → green ✓ → merge
 
 *Concepts:* branch, pull request, status check.

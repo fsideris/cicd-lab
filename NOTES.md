@@ -41,6 +41,8 @@ Grows as we learn new terms.
 | **Branch** | A parallel line of commits. You change things on a branch without touching `main`. |
 | **Pull request (PR)** | A request to merge a branch into `main`. CI runs on it, so you see ✓/✗ before merging. |
 | **Status check** | The ✓/✗ a CI job reports on a commit or PR. |
+| **Merge** | Bring a branch's commits into `main`. |
+| **Test coverage (idea)** | Which mistakes your tests can actually catch. A test that passes no matter what protects nothing. |
 
 ---
 
@@ -243,3 +245,22 @@ The steps GitHub showed, and what they mean:
 
 ### Phase 4: Watch CI catch a bug (in progress)
 Plan: pretend we forgot to run the tests. Break the math on a branch, open a PR, see CI turn red.
+
+| Command / action | Meaning |
+|---|---|
+| `git switch -c break-it` | Created branch `break-it` and moved onto it |
+| Edited `src/tip.js` line 3: `/ 100` → `/ 10` | The deliberate bug |
+| `git add .` + `git commit -m "chore(app): break tip math on purpose"` | Commit `72fd2d9` |
+| `git push -u origin break-it` | Uploaded the branch. **No CI run**: our trigger only runs on pushes to `main` |
+| `gh pr create --fill` | Opened PR #1: https://github.com/fsideris/cicd-lab/pull/1 → **this triggered CI** |
+| `gh pr checks --watch` | Watched the check: `test` → **fail** in 5 s |
+| `gh pr view --web` | Saw the red ✗ on the PR page |
+
+What CI reported (run `36548838795`):
+| Test | Result | Why |
+|---|---|---|
+| 15% of 50 is 7.5 | ✖ | actual `75`, expected `7.5` |
+| rounds to cents | ✖ | actual `50`, expected `5` |
+| 0% tip is 0 | ✔ | 0 × anything = 0, so this test **cannot** notice a wrong divisor |
+
+Lesson: CI caught the bug before it reached `main`, even though nobody ran the tests by hand. And: not every test catches every bug. Two tests caught it, one could not.
