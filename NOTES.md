@@ -54,6 +54,8 @@ Grows as we learn new terms.
 | **Permissions** | What the job's automatic GitHub token may do. Give each job only what it needs. |
 | **Environment** | A named deploy target on GitHub (here `github-pages`). Shows deploy history and the live URL. |
 | **OIDC (`id-token`)** | A short-lived identity card the job shows to prove "I am this repo's workflow". Used instead of stored passwords. |
+| **Skipped job** | A job whose `if:` was false. Not a failure: it simply did not apply (e.g. `deploy` on a PR). |
+| **Cache (browser)** | The browser keeps a copy of a page for a while. After a deploy, `Ctrl+F5` forces a fresh copy. |
 
 ---
 
@@ -357,7 +359,7 @@ Leftover again: stale `remotes/origin/docs-notes` (GitHub has only `main`). Fix:
 
 ## Part C: CD
 
-### Phase 6: Auto-deploy to GitHub Pages (in progress)
+### Phase 6: Auto-deploy to GitHub Pages ✓
 | File | Change |
 |---|---|
 | `.github/workflows/pipeline.yml` | Added a second job, `deploy`, that publishes the site after `test` passes on `main`. |
@@ -379,3 +381,41 @@ Leftover again: stale `remotes/origin/docs-notes` (GitHub has only `main`). Fix:
 | `id: deployment` + `uses: actions/deploy-pages@v5` | Publish that artifact. `id` names the step so the `url:` line can read its `page_url` output. |
 
 Versions: `upload-pages-artifact` v5.0.0 and `deploy-pages` v5.0.1 were the latest at the time. Checked their inputs: `path` is required; `deploy-pages` outputs `page_url`.
+
+| Command / action | Meaning |
+|---|---|
+| `git fetch --prune` | Removed the stale `origin/docs-notes` |
+| `git config --global fetch.prune true` | From now on every fetch/pull prunes automatically |
+| GitHub → Settings → Pages → Source: **GitHub Actions** | Pages now takes its files from our workflow (API: `build_type: workflow`) |
+| `git switch -c add-deploy` | Branch for the change (`main` is protected) |
+| `git add .` + `git commit -m "feat(ci): deploy site to GitHub Pages"` | Commit `8f06e13` |
+| `git push -u origin add-deploy` + `gh pr create --fill` | Opened PR #3 → CI ran |
+| `gh pr checks --watch` | Run `36551146227`: `test` ✓, `deploy` **skipped** (PR, not `main`) |
+| `gh pr merge --merge --delete-branch` | Merged PR #3 (merge commit `03759ad`) → push to `main` → pipeline ran |
+| `gh run watch` | Run `36551194786`: `test` ✓ → `deploy` ✓ |
+
+Result:
+- Site live: https://fsideris.github.io/cicd-lab/ (HTTP 200, title "Tip Calculator")
+- `src/tip.js` is served too (HTTP 200): the page needs it
+- `NOTES.md` is **not** on the site (HTTP 404): proof that only `_site/` (index.html + src) was published
+- Deployment recorded under environment `github-pages` for commit `03759ad`
+
+Same event, different jobs:
+| Event | `test` | `deploy` | Why |
+|---|---|---|---|
+| Pull request | ✓ | skipped | `if:` says only `main` deploys |
+| Push to `main` (the merge) | ✓ | ✓ | `needs: test` passed and `if:` is true |
+
+**Phase 6 result:** merging to `main` now tests *and* publishes the site automatically. That's CD.
+
+### Phase 7: The full loop (in progress)
+Plan: make a visible change on a branch and watch it travel PR → CI → merge → deploy → live, with no manual deploy step.
+
+Note: the first "live" reply came before Phase 7 had started (still on `main`, title unchanged). Checked with `git status`, `gh pr list`, and the live page before continuing.
+
+| Command / action | Meaning |
+|---|---|
+| `git switch -c update-title` | Branch for the change |
+| Edited `index.html` line 9: `<h1>Tip Calculator</h1>` → `<h1>Tip Calc</h1>` | The visible change |
+| `git diff index.html` | Showed exactly one changed line: `-` = old, `+` = new |
+| `npm test` | 3 pass, 0 fail (the math is untouched) |

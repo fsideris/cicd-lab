@@ -73,9 +73,9 @@ Already done: git identity is `fsider` / `fotis019@gmail.com`.
 ## Part C: CD (~30 min)
 
 ### Phase 6: Auto-deploy to GitHub Pages (20 min)
-- [ ] Settings → Pages → Source: **GitHub Actions**
-- [ ] Add a `deploy` job to `pipeline.yml`: `needs: test`, runs only on `main`
-- [ ] Push → site live at https://fsideris.github.io/cicd-lab/
+- [x] Settings → Pages → Source: **GitHub Actions**
+- [x] Add a `deploy` job to `pipeline.yml`: `needs: test`, runs only on `main`
+- [x] Push → site live at https://fsideris.github.io/cicd-lab/
 
 *Concepts:* stages (`needs:`), conditions (`if:`), permissions, environments, artifacts.
 
