@@ -47,6 +47,13 @@ Grows as we learn new terms.
 | **Remote-tracking branch** | Your local copy of what a GitHub branch looked like at the last fetch, e.g. `origin/break-it`. It can go stale. |
 | **Prune** | Delete remote-tracking branches whose GitHub branch no longer exists. |
 | **Ruleset** | GitHub rules that protect a branch, e.g. "no merge unless CI passes". |
+| **Deploy** | Put a new version where users can reach it. |
+| **Artifact** | The bundle of files a job produces and hands to another job (here: the website files). |
+| **Stage / `needs:`** | `needs: test` = this job waits for `test` and runs only if it passed. That ordering is what makes it a *pipeline*. |
+| **Condition (`if:`)** | Run a job only when a rule is true, e.g. only on `main`. |
+| **Permissions** | What the job's automatic GitHub token may do. Give each job only what it needs. |
+| **Environment** | A named deploy target on GitHub (here `github-pages`). Shows deploy history and the live URL. |
+| **OIDC (`id-token`)** | A short-lived identity card the job shows to prove "I am this repo's workflow". Used instead of stored passwords. |
 
 ---
 
@@ -304,7 +311,7 @@ Leftover: `git branch -a` still lists `remotes/origin/break-it`, but `git ls-rem
 
 **Gap found:** nothing *forces* you to wait for the green ✓. You could have merged PR #1 while it was red. Phase 5 closes that gap.
 
-### Phase 5: Protect `main` (in progress)
+### Phase 5: Protect `main` ✓
 Plan: a ruleset on `main` that requires a pull request and a green `test` check before anything gets in.
 
 | Command / action | Meaning |
@@ -325,3 +332,50 @@ Ruleset `protect-main` (id `24170484`), as the GitHub API reports it:
 | `require_extra_approval_for_unattributed_changes` | `true` | Unknown: GitHub default, meaning not verified |
 
 Tip: the rules can be read any time with `gh api repos/fsideris/cicd-lab/rulesets`.
+
+The rule in action:
+| Command | Meaning |
+|---|---|
+| `git add .` + `git commit -m "docs: log phases 4 and 5"` | Committed the notes on local `main` (commit `064f19d`) |
+| `git push` | **Refused** by the ruleset: changes to `main` must come through a PR |
+| `git switch -c docs-notes` | New branch that carries the refused commit, so nothing lost |
+| `git push -u origin docs-notes` | Uploaded the branch |
+| `gh pr create --fill` | Opened PR #2 → CI ran |
+| `gh pr view --web` | Saw merging blocked while `test` was running |
+| `gh pr checks --watch` | `test` → green ✓ |
+| `gh pr merge --merge --delete-branch` | Merged PR #2 (merge commit `0a7e06e`), back on `main` |
+
+Proof the push was refused: `064f19d` reached `main` only through merge commit `0a7e06e`, not directly.
+
+Leftover again: stale `remotes/origin/docs-notes` (GitHub has only `main`). Fix: `git fetch --prune`. To make it automatic: `git config --global fetch.prune true`.
+
+**Phase 5 result:** `main` only accepts changes through a PR with a green `test`. CI is now a gate.
+
+**Part B (CI) complete.**
+
+---
+
+## Part C: CD
+
+### Phase 6: Auto-deploy to GitHub Pages (in progress)
+| File | Change |
+|---|---|
+| `.github/workflows/pipeline.yml` | Added a second job, `deploy`, that publishes the site after `test` passes on `main`. |
+
+`deploy` job line by line:
+| Line | Meaning |
+|---|---|
+| `needs: test` | Wait for `test`. If `test` fails, `deploy` never runs. **This is the pipeline: test → deploy.** |
+| `if: github.ref == 'refs/heads/main'` | Only deploy from `main`. On PRs the job shows as *skipped*: PRs are tested, never deployed. |
+| `runs-on: ubuntu-latest` | Its own fresh machine. Jobs do not share files; that's why the artifact exists. |
+| `permissions: contents: read` | May read the repo (for checkout). |
+| `permissions: pages: write` | May publish to GitHub Pages. |
+| `permissions: id-token: write` | May request a short-lived identity token (OIDC) to prove to Pages who is deploying. |
+| `environment: name: github-pages` | Deploys are recorded under the `github-pages` environment on the repo page. |
+| `url: ${{ steps.deployment.outputs.page_url }}` | Show the live link on the run page. `${{ }}` = fill in a value while running. |
+| `uses: actions/checkout@v7` | Get the code again (new machine). |
+| `run: mkdir _site && cp -r index.html src _site/` | Collect **only the files the site needs** into `_site/`. Tests, notes, and config stay out. |
+| `uses: actions/upload-pages-artifact@v5` + `path: _site` | Pack `_site/` into an artifact called `github-pages`. |
+| `id: deployment` + `uses: actions/deploy-pages@v5` | Publish that artifact. `id` names the step so the `url:` line can read its `page_url` output. |
+
+Versions: `upload-pages-artifact` v5.0.0 and `deploy-pages` v5.0.1 were the latest at the time. Checked their inputs: `path` is required; `deploy-pages` outputs `page_url`.
