@@ -64,7 +64,7 @@ Already done: git identity is `fsider` / `fotis019@gmail.com`.
 *Concepts:* branch, pull request, status check.
 
 ### Phase 5: Protect `main` (5 min)
-- [ ] Settings → Rules → require the `test` check to pass before merging
+- [x] Settings → Rules → require the `test` check to pass before merging
 
 *Concept:* CI becomes a gate, not a suggestion.
 
