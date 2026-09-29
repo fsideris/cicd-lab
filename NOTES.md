@@ -43,6 +43,10 @@ Grows as we learn new terms.
 | **Status check** | The ✓/✗ a CI job reports on a commit or PR. |
 | **Merge** | Bring a branch's commits into `main`. |
 | **Test coverage (idea)** | Which mistakes your tests can actually catch. A test that passes no matter what protects nothing. |
+| **Merge commit** | A commit with two parents that joins a branch into `main`. Keeps the branch's history visible. |
+| **Remote-tracking branch** | Your local copy of what a GitHub branch looked like at the last fetch, e.g. `origin/break-it`. It can go stale. |
+| **Prune** | Delete remote-tracking branches whose GitHub branch no longer exists. |
+| **Ruleset** | GitHub rules that protect a branch, e.g. "no merge unless CI passes". |
 
 ---
 
@@ -243,7 +247,7 @@ The steps GitHub showed, and what they mean:
 
 **Phase 3 result:** every push to `main` is now tested automatically on a clean machine.
 
-### Phase 4: Watch CI catch a bug (in progress)
+### Phase 4: Watch CI catch a bug ✓
 Plan: pretend we forgot to run the tests. Break the math on a branch, open a PR, see CI turn red.
 
 | Command / action | Meaning |
@@ -264,3 +268,60 @@ What CI reported (run `36548838795`):
 | 0% tip is 0 | ✔ | 0 × anything = 0, so this test **cannot** notice a wrong divisor |
 
 Lesson: CI caught the bug before it reached `main`, even though nobody ran the tests by hand. And: not every test catches every bug. Two tests caught it, one could not.
+
+The fix:
+| Command / action | Meaning |
+|---|---|
+| Edited `src/tip.js` line 3 back to `/ 100` | Undo the bug |
+| `npm test` | Checked locally first: 3 pass |
+| `git add .` + `git commit -m "fix(app): restore tip math"` | Commit `6a78f72` |
+| `git push` | Added the fix to the PR → **CI re-ran automatically** |
+| `gh pr checks --watch` | `test` → green ✓ |
+| `gh pr merge --merge --delete-branch` | Merged PR #1 into `main` (merge commit `f058e3a`), deleted `break-it`, switched back to `main` |
+
+The 4 pipeline runs so far tell the whole story:
+| Run | Event | Result | What happened |
+|---|---|---|---|
+| `36547896867` | push to `main` | ✓ | First workflow added |
+| `36548838795` | pull request | ✗ | The bug, caught |
+| `36549355833` | pull request | ✓ | The fix |
+| `36549487051` | push to `main` | ✓ | The merge (a merge is a push to `main`, so CI ran again) |
+
+History after the merge (`git log --oneline --graph`):
+```
+*   f058e3a Merge pull request #1 from fsideris/break-it
+|\
+| * 6a78f72 fix(app): restore tip math
+| * 72fd2d9 chore(app): break tip math on purpose
+|/
+* 0b1581f chore(ci): add test workflow
+* c85834c feat(app): add tip calculator with tests
+```
+
+Leftover: `git branch -a` still lists `remotes/origin/break-it`, but `git ls-remote --heads origin` shows only `main` on GitHub. It is a stale local reference. Fix: `git fetch --prune`.
+
+**Phase 4 result:** a broken change was stopped at the PR, fixed, and merged green.
+
+**Gap found:** nothing *forces* you to wait for the green ✓. You could have merged PR #1 while it was red. Phase 5 closes that gap.
+
+### Phase 5: Protect `main` (in progress)
+Plan: a ruleset on `main` that requires a pull request and a green `test` check before anything gets in.
+
+| Command / action | Meaning |
+|---|---|
+| `git fetch --prune` | Removed the stale `origin/break-it` reference. `git branch -a` now shows only `main` |
+| GitHub → Settings → Rules → New branch ruleset | Created ruleset `protect-main` in the web UI |
+
+Ruleset `protect-main` (id `24170484`), as the GitHub API reports it:
+| Setting (API name) | Value | Meaning |
+|---|---|---|
+| `enforcement` | `active` | The rules are on |
+| target `~DEFAULT_BRANCH` | `main` | Applies to the default branch |
+| `bypass_actors` | none | Nobody is exempt, not even you (the repo owner) |
+| `deletion` | on | `main` cannot be deleted |
+| `non_fast_forward` | on | No force pushes: history on `main` cannot be rewritten |
+| `pull_request`, `required_approving_review_count: 0` | on | Changes must come through a PR; no human approval needed |
+| `required_status_checks`: `test` (GitHub Actions) | on | The `test` job must be green before merging |
+| `require_extra_approval_for_unattributed_changes` | `true` | Unknown: GitHub default, meaning not verified |
+
+Tip: the rules can be read any time with `gh api repos/fsideris/cicd-lab/rulesets`.
