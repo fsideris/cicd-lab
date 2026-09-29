@@ -38,8 +38,8 @@ Already done: git identity is `fsider` / `fotis019@gmail.com`.
 
 ### Phase 2: Git + GitHub (10 min)
 - [x] Create `.gitignore`
-- [ ] `git init` → first commit
-- [ ] `gh repo create cicd-lab --public --source=. --push`
+- [x] `git init` → first commit
+- [x] `gh repo create cicd-lab --public --source=. --push`
 
 *Why:* the pipeline runs on GitHub, so the code has to live there.
 

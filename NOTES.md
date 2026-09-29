@@ -30,6 +30,13 @@ Grows as we learn new terms.
 | **Remote** | A copy of the repo on another machine (here: GitHub). `origin` is its default name. |
 | **Push** | Upload your local commits to the remote. |
 | **`.gitignore`** | A list of files and folders git must never track. |
+| **Workflow** | A YAML file in `.github/workflows/` that tells GitHub what to run automatically. |
+| **Trigger (`on:`)** | The event that starts a workflow: a push, a pull request, a schedule... |
+| **Job** | A group of steps that runs on one fresh machine. |
+| **Runner** | The machine GitHub lends you to run a job (`ubuntu-latest` = a fresh Linux VM, deleted afterwards). |
+| **Step** | One action inside a job, run top to bottom. If one fails, the job stops and turns red. |
+| **Action (`uses:`)** | A ready-made step someone else wrote, e.g. `actions/checkout`. `@v7` = which version. |
+| **YAML** | The file format of workflows. Indentation (spaces, never tabs) defines structure. |
 
 ---
 
@@ -79,7 +86,7 @@ Side effect: the SSH test added GitHub's host key to `~/.ssh/known_hosts` (norma
 
 ### Open items
 - [x] Confirm the stack (JavaScript) and the working method
-- [ ] Delete `prep.sh` before Phase 2, so it does not get uploaded to the repo
+- [x] Delete `prep.sh` before Phase 2, so it does not get uploaded to the repo
 
 ### Phase 0: Setup ✓
 | Command | Meaning |
@@ -154,7 +161,7 @@ Ran `python3 -m http.server 8000` → opened http://localhost:8000 → page show
 
 **Phase 1 result:** a working page + 3 passing tests, all on your machine.
 
-### Phase 2: Git + GitHub (in progress)
+### Phase 2: Git + GitHub ✓
 | File | Meaning |
 |---|---|
 | `.gitignore` | Tells git which files never to track. |
@@ -165,3 +172,45 @@ Ran `python3 -m http.server 8000` → opened http://localhost:8000 → page show
 | `node_modules/` | The folder where `npm install` puts downloaded packages. It can be huge and is re-downloadable, so it never goes into git. We have no packages yet; this is a guard for later. |
 
 Checked: the repo name `cicd-lab` is free on the `fsideris` account (the only existing repo is `AKS-fotis`).
+
+| Command | Meaning |
+|---|---|
+| `rm prep.sh` | Deleted the placeholder script so it would not be uploaded |
+| `git init` | Turned `~/WORK3` into a git repo (creates the hidden `.git/` folder) |
+| `git add .` | Staged all files for the first snapshot (`.gitignore` filters) |
+| `git status` | Showed the 7 files about to be committed |
+| `git commit -m "feat(app): add tip calculator with tests"` | Saved the first snapshot |
+| `gh repo create cicd-lab --public --source=. --push` | Created the GitHub repo, linked it as `origin`, uploaded the commit |
+| `gh repo view --web` | Opened the repo in the browser |
+
+Result:
+- Repo live: https://github.com/fsideris/cicd-lab (public, default branch `main`)
+- First commit: `c85834c feat(app): add tip calculator with tests`, author `fsider <fotis019@gmail.com>`
+- 7 files tracked: `.gitignore`, `NOTES.md`, `STEPS.md`, `index.html`, `package.json`, `src/tip.js`, `test/tip.test.js`
+
+---
+
+## Part B: CI
+
+### Phase 3: First workflow (in progress)
+| File | Meaning |
+|---|---|
+| `.github/workflows/pipeline.yml` | The pipeline. For now one job, `test`, which runs `npm test` on GitHub's machine. |
+
+`pipeline.yml` line by line:
+| Line | Meaning |
+|---|---|
+| `name: pipeline` | The name shown in the Actions tab. |
+| `on:` | **When** to run (the triggers). |
+| `push: branches: [main]` | Run on every push to `main`. |
+| `pull_request:` | Run on every pull request (any branch). Together: `main` is always tested, and every proposed change is tested before it gets in. |
+| `jobs:` | **What** to run. |
+| `test:` | The job's name. Phase 5 will require a job called `test` to pass. |
+| `runs-on: ubuntu-latest` | Borrow a fresh Linux machine from GitHub. It starts empty: no code, no Node. |
+| `steps:` | The to-do list for that machine, top to bottom. |
+| `uses: actions/checkout@v7` | Step 1: download your repo's code onto the machine. |
+| `uses: actions/setup-node@v7` + `node-version: 24` | Step 2: install Node 24, the same version as your WSL (v24.21.0). |
+| `run: npm test` | Step 3: the exact command you ran by hand. Exit code `0` → green ✓, anything else → red ✗. |
+
+Versions: `@v7` = latest major release of both actions at the time of writing (checkout v7.0.1, setup-node v7.0.0).
+Only YAML files inside `.github/workflows/` are picked up by GitHub. The folder name must be exact.
