@@ -37,6 +37,10 @@ Grows as we learn new terms.
 | **Step** | One action inside a job, run top to bottom. If one fails, the job stops and turns red. |
 | **Action (`uses:`)** | A ready-made step someone else wrote, e.g. `actions/checkout`. `@v7` = which version. |
 | **YAML** | The file format of workflows. Indentation (spaces, never tabs) defines structure. |
+| **Run** | One execution of a workflow. Each push to `main` or PR update creates a new run. |
+| **Branch** | A parallel line of commits. You change things on a branch without touching `main`. |
+| **Pull request (PR)** | A request to merge a branch into `main`. CI runs on it, so you see ✓/✗ before merging. |
+| **Status check** | The ✓/✗ a CI job reports on a commit or PR. |
 
 ---
 
@@ -192,7 +196,7 @@ Result:
 
 ## Part B: CI
 
-### Phase 3: First workflow (in progress)
+### Phase 3: First workflow ✓
 | File | Meaning |
 |---|---|
 | `.github/workflows/pipeline.yml` | The pipeline. For now one job, `test`, which runs `npm test` on GitHub's machine. |
@@ -214,3 +218,28 @@ Result:
 
 Versions: `@v7` = latest major release of both actions at the time of writing (checkout v7.0.1, setup-node v7.0.0).
 Only YAML files inside `.github/workflows/` are picked up by GitHub. The folder name must be exact.
+
+| Command | Meaning |
+|---|---|
+| `git status` | Showed `.github/` as new + notes modified |
+| `git add .` | Staged everything |
+| `git commit -m "chore(ci): add test workflow"` | Commit `0b1581f` |
+| `git push` | Uploaded to `main` → this push **triggered the first pipeline run** |
+| `gh run watch` | Followed the run live in the terminal |
+
+Result: run `36547896867`, job `test` → **success** in 8 s. Log showed `tests 3, pass 3, fail 0`.
+
+The steps GitHub showed, and what they mean:
+| Step in the log | Meaning |
+|---|---|
+| Set up job | GitHub prepares the fresh runner |
+| Run actions/checkout@v7 | Our step 1: code downloaded |
+| Run actions/setup-node@v7 | Our step 2: Node 24 installed |
+| Run npm test | Our step 3: tests passed |
+| Post Run ... | Automatic clean-up for the actions (runs in reverse order) |
+| Complete job | Runner is shut down and deleted |
+
+**Phase 3 result:** every push to `main` is now tested automatically on a clean machine.
+
+### Phase 4: Watch CI catch a bug (in progress)
+Plan: pretend we forgot to run the tests. Break the math on a branch, open a PR, see CI turn red.

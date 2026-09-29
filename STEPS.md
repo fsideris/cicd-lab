@@ -52,7 +52,7 @@ Already done: git identity is `fsider` / `fotis019@gmail.com`.
 |---|---|
 | `.github/workflows/pipeline.yml` | Job `test`: checkout → set up Node → `npm test`. Runs on every push and pull request. |
 
-- [ ] Push → `gh run watch` (or the Actions tab) → green ✓
+- [x] Push → `gh run watch` (or the Actions tab) → green ✓
 
 *Concepts:* workflow, trigger (`on:`), job, runner, step, action (`uses:`).
 
