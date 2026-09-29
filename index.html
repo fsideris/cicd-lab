@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tip Calculator</title>
+</head>
+<body>
+  <h1>Tip Calculator</h1>
+
+  <p><label>Bill: <input id="bill" type="number" value="50"></label></p>
+  <p><label>Tip %: <input id="percent" type="number" value="15"></label></p>
+  <p>Tip: <strong id="result"></strong></p>
+
+  <script type="module">
+    import { calcTip } from './src/tip.js';
+
+    const bill = document.getElementById('bill');
+    const percent = document.getElementById('percent');
+    const result = document.getElementById('result');
+
+    function update() {
+      result.textContent = calcTip(Number(bill.value), Number(percent.value)).toFixed(2);
+    }
+
+    bill.addEventListener('input', update);
+    percent.addEventListener('input', update);
+    update();
+  </script>
+</body>
+</html>
