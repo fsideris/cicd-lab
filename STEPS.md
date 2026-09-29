@@ -80,7 +80,7 @@ Already done: git identity is `fsider` / `fotis019@gmail.com`.
 *Concepts:* stages (`needs:`), conditions (`if:`), permissions, environments, artifacts.
 
 ### Phase 7: The full loop (10 min)
-- [ ] Change the page text on a branch → pull request → CI ✓ → merge → auto-deploy → see it live
+- [x] Change the page text on a branch → pull request → CI ✓ → merge → auto-deploy → see it live
 
 This is CI/CD end to end.
 
